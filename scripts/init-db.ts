@@ -4,6 +4,10 @@ import { neon } from '@neondatabase/serverless';
 const sql = neon(process.env.DATABASE_URL!);
 
 async function main() {
+  await sql`DROP TABLE IF EXISTS meeting_files CASCADE`;
+  await sql`DROP TABLE IF EXISTS meeting_videos CASCADE`;
+  await sql`DROP TABLE IF EXISTS meetings CASCADE`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS meetings (
       id serial PRIMARY KEY,
