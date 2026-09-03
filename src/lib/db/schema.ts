@@ -64,6 +64,33 @@ export const meetingFiles = pgTable(
   }),
 );
 
+export const meetingTranscripts = pgTable(
+  'meeting_transcripts',
+  {
+    id: serial('id').primaryKey(),
+    meetingId: integer('meeting_id')
+      .notNull()
+      .references(() => meetings.id, { onDelete: 'cascade' }),
+    videoId: integer('video_id')
+      .notNull()
+      .references(() => meetingVideos.id, { onDelete: 'cascade' }),
+    rawTranscript: text('raw_transcript'),
+    segmentsJson: text('segments_json'),
+    status: text('status').notNull().default('pending'),
+    transcriptSource: text('transcript_source'),
+    errorMessage: text('error_message'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    videoIdx: uniqueIndex('meeting_transcripts_video_idx').on(table.videoId),
+    meetingIdx: index('meeting_transcripts_meeting_idx').on(table.meetingId),
+    statusIdx: index('meeting_transcripts_status_idx').on(table.status),
+  }),
+);
+
 export type Meeting = typeof meetings.$inferSelect;
 export type MeetingVideo = typeof meetingVideos.$inferSelect;
 export type MeetingFile = typeof meetingFiles.$inferSelect;
+export type MeetingTranscript = typeof meetingTranscripts.$inferSelect;
+export type TranscriptStatus = 'pending' | 'processing' | 'completed' | 'failed';

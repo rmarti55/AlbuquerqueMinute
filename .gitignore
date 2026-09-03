@@ -41,3 +41,6 @@ next-env.d.ts
 
 # drizzle
 /drizzle/meta
+
+# local STT smoke outputs
+/data/stt-smoke/

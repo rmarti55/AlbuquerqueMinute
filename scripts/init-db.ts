@@ -9,6 +9,7 @@ if (!url) throw new Error('DATABASE_URL is not set in .env.local');
 const sql = neon(url);
 
 async function main() {
+  await sql`DROP TABLE IF EXISTS meeting_transcripts CASCADE`;
   await sql`DROP TABLE IF EXISTS meeting_files CASCADE`;
   await sql`DROP TABLE IF EXISTS meeting_videos CASCADE`;
   await sql`DROP TABLE IF EXISTS meetings CASCADE`;
@@ -55,6 +56,24 @@ async function main() {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS meeting_files_meeting_idx ON meeting_files (meeting_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS meeting_transcripts (
+      id serial PRIMARY KEY,
+      meeting_id integer NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+      video_id integer NOT NULL REFERENCES meeting_videos(id) ON DELETE CASCADE,
+      raw_transcript text,
+      segments_json text,
+      status text NOT NULL DEFAULT 'pending',
+      transcript_source text,
+      error_message text,
+      created_at timestamptz DEFAULT now(),
+      updated_at timestamptz DEFAULT now()
+    )
+  `;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS meeting_transcripts_video_idx ON meeting_transcripts (video_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS meeting_transcripts_meeting_idx ON meeting_transcripts (meeting_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS meeting_transcripts_status_idx ON meeting_transcripts (status)`;
 
   console.log('Database schema ready.');
 }
