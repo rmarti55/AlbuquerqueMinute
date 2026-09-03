@@ -4,6 +4,8 @@ Admin-only newsroom pipeline for Albuquerque civic meetings — Legistar ingest,
 
 **Not** the public Santa Fe Minutes civic portal.
 
+**ABQ consumer newsletter research:** [`data/abq-market/`](data/abq-market/) (competitive landscape, event sources) + [`data/catskill-crew/CADENCE-PLAYBOOK.md`](data/catskill-crew/CADENCE-PLAYBOOK.md) (Catskill format to copy).
+
 ## Stack
 
 - Next.js 15 (App Router)

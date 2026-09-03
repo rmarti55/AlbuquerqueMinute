@@ -5,6 +5,7 @@ Local archive of public Catskill Crew newsletter issues for competitive analysis
 ## Contents
 
 - `STRATEGIC-REFERENCE.md` — competitive analysis playbook (revenue model, monetization evolution, Santa Fe implications)
+- `CADENCE-PLAYBOOK.md` — publish cadence, coverage windows, edition #1 template (copy for ABQ launch)
 - `catalog.md` — scannable index of all issues (start here)
 - `catalog.json` — machine-readable index
 - `issues/YYYY/YYYY-MM-DD-slug.md` — one file per issue with YAML frontmatter
@@ -23,6 +24,7 @@ Local archive of public Catskill Crew newsletter issues for competitive analysis
 Reference these paths in chat:
 
 - `@data/catskill-crew/STRATEGIC-REFERENCE.md` — strategic playbook and revenue analysis
+- `@data/catskill-crew/CADENCE-PLAYBOOK.md` — cadence, format, launch checklist
 - `@data/catskill-crew/catalog.md` — overview and navigation
 - `@data/catskill-crew/issues/2024/` — analyze a specific year
 - `@data/catskill-crew/issues/2023/2023-11-27-catskill-crew-newsletter-b178.md` — first edition baseline
