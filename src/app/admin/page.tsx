@@ -7,6 +7,13 @@ import { SyncButton } from './sync-button';
 
 export const dynamic = 'force-dynamic';
 
+const linkClass =
+  'text-xs font-medium text-zinc-600 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-900 hover:decoration-zinc-500';
+
+function EmptyCell() {
+  return <span className="text-zinc-300">—</span>;
+}
+
 export default async function AdminPage() {
   const { lookback, lookahead } = getSyncWindow();
   let rows: Awaited<ReturnType<typeof listMeetingsInWindow>> = [];
@@ -21,7 +28,7 @@ export default async function AdminPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
+    <main className="w-full px-6 py-8 lg:px-10">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 pb-6">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">The Albuquerque Minute</h1>
@@ -59,79 +66,94 @@ export default async function AdminPage() {
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white shadow-sm">
-            <table className="min-w-full text-left text-sm">
+          <div className="rounded-lg border border-zinc-200 bg-white shadow-sm">
+            <table className="w-full table-fixed text-left text-sm">
+              <colgroup>
+                <col className="w-[22%]" />
+                <col className="w-44" />
+                <col />
+                <col className="w-[4.5rem]" />
+                <col className="w-[5.5rem]" />
+                <col className="w-20" />
+                <col className="w-[4.5rem]" />
+              </colgroup>
               <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">Body</th>
-                  <th className="px-4 py-3 font-medium">Date</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium">Date</th>
                   <th className="px-4 py-3 font-medium">Title</th>
-                  <th className="px-4 py-3 font-medium">Video</th>
-                  <th className="px-4 py-3 font-medium">Transcript</th>
-                  <th className="px-4 py-3 font-medium">Links</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium">Video</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium">Transcript</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium">Legistar</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium">Agenda</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
                       No meetings in window. Run sync from Legistar.
                     </td>
                   </tr>
                 ) : (
                   rows.map((row) => (
                     <tr key={row.id} className="hover:bg-zinc-50/80">
-                      <td className="px-4 py-3 align-top font-medium text-zinc-800">{row.body}</td>
-                      <td className="whitespace-nowrap px-4 py-3 align-top text-zinc-600">
+                      <td className="whitespace-nowrap px-4 py-3 align-middle font-medium text-zinc-800">
+                        {row.body}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 align-middle text-zinc-600">
                         {formatMeetingDateTime(row.startAt)}
                       </td>
-                      <td className="max-w-xs px-4 py-3 align-top text-zinc-700">{row.title}</td>
-                      <td className="px-4 py-3 align-top">
-                        {row.hasVideo ? (
-                          <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                            Yes
-                            {row.granicusClipId ? ` · clip ${row.granicusClipId}` : ''}
-                          </span>
+                      <td className="px-4 py-3 align-middle text-zinc-700">{row.title}</td>
+                      <td className="whitespace-nowrap px-4 py-3 align-middle">
+                        {row.playerUrl ? (
+                          <Link
+                            href={row.playerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={
+                              row.granicusClipId
+                                ? `Granicus clip ${row.granicusClipId}`
+                                : 'Watch recording'
+                            }
+                            className="font-mono text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
+                          >
+                            {row.granicusClipId ?? 'Watch'}
+                          </Link>
                         ) : (
-                          <span className="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
-                            No
-                          </span>
+                          <EmptyCell />
                         )}
                       </td>
-                      <td className="px-4 py-3 align-top text-zinc-400">—</td>
-                      <td className="px-4 py-3 align-top">
-                        <div className="flex flex-col gap-1 text-xs">
-                          {row.sourceUrl && (
-                            <Link
-                              href={row.sourceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              Legistar
-                            </Link>
-                          )}
-                          {row.agendaUrl && (
-                            <Link
-                              href={row.agendaUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              Agenda
-                            </Link>
-                          )}
-                          {row.playerUrl && (
-                            <Link
-                              href={row.playerUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              Video
-                            </Link>
-                          )}
-                        </div>
+                      <td className="whitespace-nowrap px-4 py-3 align-middle text-zinc-300">
+                        <EmptyCell />
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 align-middle">
+                        {row.sourceUrl ? (
+                          <Link
+                            href={row.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={linkClass}
+                          >
+                            View
+                          </Link>
+                        ) : (
+                          <EmptyCell />
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 align-middle">
+                        {row.agendaUrl ? (
+                          <Link
+                            href={row.agendaUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={linkClass}
+                          >
+                            PDF
+                          </Link>
+                        ) : (
+                          <EmptyCell />
+                        )}
                       </td>
                     </tr>
                   ))
