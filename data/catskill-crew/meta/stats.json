@@ -1,0 +1,12 @@
+{
+  "issue_count": 147,
+  "successful": 147,
+  "failed": 0,
+  "date_range": {
+    "first": "2023-11-27T19:38:19Z",
+    "last": "2026-09-01T19:18:15Z"
+  },
+  "total_words": 213544,
+  "avg_words": 1453,
+  "fetched_at": "2026-09-03T17:11:22.205Z"
+}
