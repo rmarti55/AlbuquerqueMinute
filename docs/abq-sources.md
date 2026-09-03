@@ -9,12 +9,16 @@ The Albuquerque Minute admin pipeline ingests **City Council and related bodies*
 | Client slug | `cabq` (not `albuquerque`) |
 | API base | `https://webapi.legistar.com/v1/cabq` |
 | Events | `GET /events` with OData `$filter` on `EventDate` |
-| Sync window | 14 days lookback · 60 days lookahead (America/Denver) |
+| Sync window | 31 days lookback (~30) · 60 days lookahead (America/Denver) |
 | Cron | Every 6 hours via `/api/cron/legistar-sync` |
 
 ### Bodies synced (EventBodyId)
 
 Council and standing committees only — see `LEGISTAR_BODY_IDS` in `src/lib/legistar/config.ts`.
+
+### Calendar.aspx vs REST API
+
+`Calendar.aspx` can show **placeholder rows** (e.g. Sep 9 City Council from the published annual schedule) before the clerk creates a Legistar **Event**. Those dates are not in `GET /events` until an agenda is posted and the event is published — sync will pick them up automatically then. Do not scrape the calendar HTML.
 
 ### Video linkage
 

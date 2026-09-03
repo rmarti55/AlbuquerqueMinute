@@ -1,12 +1,13 @@
 import { DateTime } from 'luxon';
+import { LOOKAHEAD_DAYS, LOOKBACK_DAYS } from '@/lib/legistar/config';
 
 export const EVENT_TIMEZONE = 'America/Denver';
 
 export function getSyncWindow(): { lookback: DateTime; lookahead: DateTime } {
   const now = DateTime.now().setZone(EVENT_TIMEZONE).startOf('day');
   return {
-    lookback: now.minus({ days: 14 }),
-    lookahead: now.plus({ days: 60 }).endOf('day'),
+    lookback: now.minus({ days: LOOKBACK_DAYS }),
+    lookahead: now.plus({ days: LOOKAHEAD_DAYS }).endOf('day'),
   };
 }
 

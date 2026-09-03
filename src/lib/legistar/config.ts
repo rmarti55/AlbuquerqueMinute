@@ -15,7 +15,8 @@ export const LEGISTAR_BODY_IDS = new Set([
   48, // Public Safety Committee
 ]);
 
-export const LOOKBACK_DAYS = 14;
+/** ~30 days; 31 so Aug 3 5pm Council (clip 555) stays inside the Denver window. */
+export const LOOKBACK_DAYS = 31;
 export const LOOKAHEAD_DAYS = 60;
 
 export const GRANICUS_VIEW_ID = 2;
