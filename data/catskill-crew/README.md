@@ -4,7 +4,7 @@ Local archive of public Catskill Crew newsletter issues for competitive analysis
 
 ## Contents
 
-- `STRATEGIC-REFERENCE.md` — competitive analysis playbook (revenue model, monetization evolution, Santa Fe implications)
+- `STRATEGIC-REFERENCE.md` — monetization playbook and ABQ launch implications
 - `CADENCE-PLAYBOOK.md` — publish cadence, coverage windows, edition #1 template (copy for ABQ launch)
 - `catalog.md` — scannable index of all issues (start here)
 - `catalog.json` — machine-readable index

@@ -2,6 +2,8 @@
 
 The Albuquerque Minute admin pipeline ingests **City Council and related bodies** from Legistar, then attaches Granicus video when available.
 
+> **Phase legend:** Phases in this file are **Civic pipeline** phases (this admin app). Newsletter launch phases (Beehiiv MVP, monetization) live in [`data/abq-market/ABQ-COMPETITIVE-LANDSCAPE.md`](../data/abq-market/ABQ-COMPETITIVE-LANDSCAPE.md) — do not mix the two numbering schemes.
+
 ## Legistar (meetings metadata)
 
 | Field | Value |
@@ -40,28 +42,28 @@ Legistar `EventMedia` holds the **Granicus clip id** when a recording exists. `E
 - Use Chrome UA + `Referer: https://cabq.granicus.com/` → 200
 - Recipe: GET player → regex `video_url` → `ffmpeg` → Deepgram
 
-## YouTube (secondary / manual)
+## YouTube (reference only — not wired)
 
 | Field | Value |
 |-------|-------|
 | Channel | `@GOVTVBoardsCommissionMeetings` |
 | Role | Town halls, boards, commissions — **not** reliable Council archive |
 
-v1: manual YouTube paste only. Auto-match is Phase 2+.
+The schema has a reserved `youtube_id` column on `meeting_videos`, but **this app does not use it** — no paste UI, no YouTube sync, no auto-match. Council video comes from Granicus via Legistar `EventMedia` only.
 
 ## Auth
 
 - **Admin UI:** Clerk sign-in; allowlist via `ADMIN_EMAIL`
 - **Cron routes:** `CRON_SECRET` (Bearer token or `?secret=`)
 
-## Phase roadmap
+## Civic phase roadmap
 
-1. **Phase 1 (done):** Legistar sync + admin meetings table
-2. **Phase 2 (current):** `meeting_transcripts` table + local CLI STT + admin copy UI
-3. **Phase 2b (later):** Hetzner VPS worker (auto queue, same recipe as Santa Fe Minutes)
-4. **Phase 3:** `/admin/generate` — paste transcript → OpenRouter article draft
+1. **Civic Phase 1 (done):** Legistar sync + admin meetings table
+2. **Civic Phase 2 (done):** `meeting_transcripts` table + local CLI STT + admin copy UI
+3. **Civic Phase 2b (later):** Hetzner VPS worker (auto queue, same recipe as Santa Fe Minutes)
+4. **Civic Phase 3 (not built):** `/admin/generate` — paste transcript → OpenRouter article draft
 
-### Phase 2 — local transcription CLI
+### Civic Phase 2 — local transcription CLI
 
 Set `DEEPGRAM_API_KEY` in `.env.local`. STT runs **locally only** — never on Vercel.
 

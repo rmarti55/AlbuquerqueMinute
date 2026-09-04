@@ -58,7 +58,7 @@ These guards block the **most common** footgun. They do **not** protect against 
 | `npm run db:push` | Schema change on **ABQ Neon** | Host is `ep-blue-sky-*`; assert script passes |
 | `npm run db:init -- --apply` | Fresh ABQ database only | Never on SFM; dry-run without `--apply` first |
 | `npm run sync:legistar` | Normal ops | ABQ URL only |
-| `npm run stt:transcribe` | Local STT (Phase 2) | ABQ URL only; runs locally, not on Vercel |
+| `npm run stt:transcribe` | Local STT (Civic Phase 2) | ABQ URL only; runs locally, not on Vercel |
 
 ---
 

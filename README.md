@@ -1,6 +1,10 @@
 # The Albuquerque Minute
 
-Admin-only newsroom pipeline for Albuquerque civic meetings — Legistar ingest, Granicus video, STT, and article generation (phased).
+Admin-only newsroom pipeline for Albuquerque civic meetings.
+
+**Ships today:** Legistar ingest, Granicus video linkage, local STT (Deepgram), transcript copy UI at `/admin`.
+
+**Not built:** `/admin/generate` article drafts (Civic Phase 3 — see [docs/abq-sources.md](docs/abq-sources.md)).
 
 **Not** the public Santa Fe Minutes civic portal.
 
@@ -26,13 +30,19 @@ npm run dev
 
 Open [http://localhost:3000/admin](http://localhost:3000/admin) — sign in with the allowlisted email.
 
+**Optional (local STT):** install `ffmpeg`, set `DEEPGRAM_API_KEY` in `.env.local`, then see [docs/abq-sources.md](docs/abq-sources.md#civic-phase-2--local-transcription-cli).
+
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Local dev server |
-| `npm run db:push` | Push schema to Neon |
+| `npm run db:push` | Push schema to Neon (runs SFM guard first) |
+| `npm run db:init -- --apply` | Fresh ABQ database only — DROP + recreate tables |
 | `npm run sync:legistar` | Manual Legistar sync (CLI) |
+| `npm run stt:transcribe` | Local Granicus → Deepgram → DB (see abq-sources) |
+| `npm run stt:smoke` | Cheap STT debug slice (ffmpeg + Deepgram) |
+| `npm run sync:catskill-crew` | Refresh Catskill Crew research corpus |
 
 ## Database (Neon)
 

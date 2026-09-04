@@ -1,6 +1,6 @@
 # Catskill Crew — Strategic Reference
 
-Competitive analysis playbook for Santa Fe Minutes and related local newsletter projects. Synthesized from the local 147-issue corpus (`data/catskill-crew/`) and public profiles (beehiiv, Nieman Journalism Lab, Creator Diaries, High Signal).
+Competitive analysis playbook for launching a Catskill Crew-style newsletter in **Albuquerque**. Synthesized from the local 147-issue corpus (`data/catskill-crew/`) and public profiles (beehiiv, Nieman Journalism Lab, Creator Diaries, High Signal).
 
 **Last updated:** 2026-09-03  
 **Corpus sync:** `npm run sync:catskill-crew`
@@ -40,7 +40,7 @@ Use alongside:
 
 Michael Kauffman (Nieman, 2025): he runs a local company with a media arm that acts as a "validation engine and distribution vehicle for everything else."
 
-Implication for Santa Fe Minutes: a **$50K Year 1 ads-only ceiling** is realistic for Santa Fe County (~157K people), but a **full-stack local media operation** can plausibly reach **$200K–500K+** at maturity without NYC-scale audience — if you launch products and events through the list, not just ad slots.
+Implication for Albuquerque: the MSA (~925K) is **~4x Catskills core counties** with **no dominant Catskill equivalent** (see [`ABQ-COMPETITIVE-LANDSCAPE.md`](../abq-market/ABQ-COMPETITIVE-LANDSCAPE.md)). A full-stack local media operation can plausibly reach **$200K–500K+** at maturity without NYC-scale audience — if you launch products and events through the list, not just ad slots. This repo already ships the **civic news layer** (Legistar + Granicus STT) via the admin app.
 
 ---
 
@@ -118,11 +118,12 @@ Counts = **issues in that year containing the pattern** (from corpus text analys
 
 ### Era narrative
 
-**2023 — pure utility, zero monetization**
+**2023 — utility-first, light monetization**
 
-- Edition #1: events list + share CTA + subscribe footer only
-- No sponsors, shop, products, or partner blocks
-- Editorial = the product
+- Edition #1: events list + share CTA + subscribe footer only — **no sponsors**
+- Edition #5 (~4 weeks): first sponsor ("This week's Newsletter is Sponsored by…")
+- No shop, products, or partner blocks until 2024
+- Editorial = the product; monetization ramps slowly
 
 **2024 — monetization begins**
 
@@ -244,64 +245,48 @@ Three conversion paths in one line — every late-2026 issue.
 
 ---
 
-## Santa Fe Minutes — implications
+## Albuquerque — implications
 
-### Revised ceiling math
+### Market context
 
-| Scenario | Ad revenue only | Full stack (Catskill-style) |
-|----------|----------------|----------------------------|
-| Meh Year 1 | $10–20K | — |
-| Good execution | $25–40K | — |
-| Very strong Year 1 | $50–70K | — |
-| Mature operation | — | $200K–500K+ plausible |
-| Stretch (ads) | ~$100K at 5K+ local readers | — |
+| Factor | Catskills / Hudson Valley | Albuquerque MSA |
+|--------|---------------------------|-----------------|
+| Population | Regional (~230K core counties + NYC weekender traffic) | ~925K MSA |
+| Tourism / second-home | High | Moderate |
+| Event density | High | High |
+| Existing newsletter comp | None dominant at Catskill scale | ABQtodo, Morning ABQ, ABQ Mom — no Catskill-style day-by-day voice |
+| Civic / government angle | Light in Catskill Crew | **Already built** — Legistar sync + STT in this repo's admin app |
 
-**Treat $50K as realistic Year 1 ads target; $75K as "holy shit" ads result.**
-
-SFR benchmark: ~$500–600/four weeks per placement, ~8K–10K subscribers; promotional package ~$495/week.
+Albuquerque can differentiate on **civic intelligence + culture/events**, where Catskill Crew is primarily **culture/events/lifestyle**. Copy Catskill's events product; add council/meeting coverage as a news-layer edge.
 
 ### Five streams to steal (not all fifteen)
 
-| Priority | Stream | Why it fits Santa Fe |
-|----------|--------|---------------------|
-| 1 | **Newsletter sponsorships** | SFR proves local ad demand; civic/local business appetite |
-| 2 | **Sponsored / ticketed events** | Santa Fe is event-heavy; civic + culture calendar is natural |
-| 3 | **Local pass / discount product** | Crew Card equivalent — restaurants, galleries, markets |
-| 4 | **Premium physical / civic guide** | Voter guides, neighborhood guides, seasonal print — matches Kauffman's physical-premium bet |
+| Priority | Stream | Why it fits ABQ |
+|----------|--------|-----------------|
+| 1 | **Newsletter sponsorships** | No SFR-class incumbent; local business appetite across Nob Hill, Downtown, Sawmill |
+| 2 | **Sponsored / ticketed events** | ABQ is event-heavy; Mon/Fri calendar habit is the wedge |
+| 3 | **Local pass / discount product** | Crew Card equivalent — restaurants, breweries, galleries |
+| 4 | **Premium physical / civic guide** | Neighborhood guides, seasonal print — matches Kauffman's physical-premium bet |
 | 5 | **Curated commerce** | Limited merch or local product drops once trust is built |
 
 ### Defer
 
 - Holdco / equity investing
 - Newsletter Club-style education business (separate venture)
-- Board games (unless Santa Fe has a killer hook)
-- Multi-city until Santa Fe machine works
+- Board games (unless ABQ has a killer hook)
+- Multi-city until ABQ machine works
 
 ### Timing lessons from Catskill
 
-1. **Year 1 should not look like edition 147.** Catskill ran ~12 months with zero monetization. Trust first.
+1. **Year 1 should not look like edition 147.** Edition #1 is sponsor-free; first sponsor lands ~week 4 (edition #5); shop/products arrive months 3–4. Trust the events spine first — year-one still looks nothing like edition #147.
 2. **Sponsor format evolved:** 2024's "This week is sponsored by…" → 2026's "TOGETHER WITH" native sections + always-on partner inventory.
 3. **Ads are one slot among many.** In 2026, contribute + dinner club + snail mail + product drops appear more often than named sponsor blocks.
 4. **Repeat sponsors are a feature.** Pink's and Flowstate run multiple times.
 5. **Fixed editorial chassis enables monetization.** THE REPORT + BULLETIN + HAPPENINGS gives predictable real estate without feeling ad-heavy.
 
-### Multi-city strategy
+### Sibling project: Santa Fe Minutes
 
-Santa Fe doesn't need to become a $500K business alone. Get Santa Fe to $50–100K, then reproduce in Albuquerque, Las Cruces, Rio Rancho, Los Alamos, etc.
-
----
-
-## Santa Fe vs Catskill — market comparison
-
-| Factor | Catskills / Hudson Valley | Santa Fe County |
-|--------|---------------------------|-----------------|
-| Population | Regional (multiple counties + NYC weekender traffic) | ~157K county |
-| Tourism / second-home | High | High |
-| Event density | High | High |
-| Existing newsletter comp | None dominant at Catskill scale | SFR (~8K–10K subs) |
-| Civic / government angle | Light in Catskill Crew | Strong opportunity (Legistar, meetings — Albuquerque Minute stack) |
-
-Santa Fe Minutes can differentiate on **civic intelligence + culture/events**, where Catskill Crew is primarily **culture/events/lifestyle**.
+Same Catskill playbook, different market (~157K county, SFR ~8K–10K subs as benchmark). Santa Fe Minutes runs its own civic pipeline and beehiiv publication — see that repo for SF-specific ceiling math and isolation rules. ABQ and SFM share research corpus but **separate Neon, Clerk, and consumer brands**.
 
 ---
 
@@ -331,11 +316,12 @@ Santa Fe Minutes can differentiate on **civic intelligence + culture/events**, w
 - Extract event-listing patterns from 2024 issues
 - How does THE REPORT section evolve from first appearance to 2026?
 
-### Santa Fe application
+### ABQ application
 
-- Given `@STRATEGIC-REFERENCE.md`, draft a Year 1 monetization timeline for Santa Fe Minutes
-- Which Catskill editorial sections translate to Santa Fe, which don't?
+- Given `@STRATEGIC-REFERENCE.md` + `@data/abq-market/ABQ-COMPETITIVE-LANDSCAPE.md`, draft a Year 1 monetization timeline for ABQ
+- Which Catskill editorial sections translate to ABQ neighborhoods (Nob Hill, Downtown, Sawmill), which don't?
 - Draft a "TOGETHER WITH" template based on 2026 Catskill partner blocks
+- Use `@docs/abq-sources.md` transcripts to draft a "this week at City Council" news send
 
 ---
 
@@ -346,7 +332,7 @@ Santa Fe Minutes can differentiate on **civic intelligence + culture/events**, w
 - [beehiiv — How Michael Kauffman Built a Profitable Newsletter Business](https://www.beehiiv.com/blog/how-michael-kaufman-built-a-profitable-newsletter-business)
 - [Nieman Lab — Are these local newsletters local news?](https://www.niemanlab.org/2025/10/are-these-local-newsletters-local-news-and-does-it-matter/)
 - [High Signal — Catskill Crew founder local media empire](https://www.highsignal.io/catskill-crew-founder-local-media-empire/)
-- SFR newsletter inventory benchmarks (user research)
+- SFR newsletter inventory benchmarks (user research — see Santa Fe Minutes sibling project)
 
 ---
 

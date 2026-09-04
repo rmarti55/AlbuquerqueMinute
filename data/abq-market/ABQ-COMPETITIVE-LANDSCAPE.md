@@ -5,6 +5,8 @@ Research for launching a Catskill Crew-style newsletter in ABQ. **Strategy: copy
 **Last updated:** 2026-09-03  
 **Companion docs:** [`../catskill-crew/CADENCE-PLAYBOOK.md`](../catskill-crew/CADENCE-PLAYBOOK.md), [`../catskill-crew/STRATEGIC-REFERENCE.md`](../catskill-crew/STRATEGIC-REFERENCE.md)
 
+> **Phase legend:** Phases in this file are **Newsletter launch** phases (Beehiiv consumer product). Civic pipeline phases (Legistar sync, STT, article generation) live in [`docs/abq-sources.md`](../../docs/abq-sources.md) — do not mix the two numbering schemes.
+
 ---
 
 ## Market size
@@ -129,25 +131,25 @@ For the **news throughout the week** sends (your hybrid add-on):
 
 | Source | In this repo? | Use |
 |--------|---------------|-----|
-| Legistar `cabq` API | Yes — [`docs/abq-sources.md`](../../docs/abq-sources.md) | Council meetings, agendas, votes |
-| Granicus video | Yes | Meeting clips, STT summaries |
+| Legistar `cabq` API | Yes — live in admin app ([`docs/abq-sources.md`](../../docs/abq-sources.md)) | Council meetings, agendas, votes |
+| Granicus video + STT | Yes — live in admin app | Meeting clips, transcript copy for editorial |
 | Morning ABQ / Journal | No | Competitive — don't republish; use for gap detection |
 | Business openings | Manual | IG, r/Albuquerque, Nextdoor, vendor announcements |
 | Authentically ABQ | External | Arts/culture story leads |
 
-Phase 2: wire Legistar sync → draft "this week at City Council" for Monday news send.
+**Newsletter Phase 2:** use the existing civic pipeline (Legistar sync + transcripts already running) to draft "this week at City Council" for Monday news sends — not to build Legistar from scratch.
 
 ---
 
 ## Launch checklist
 
-### Phase 0 — Research (done)
+### Newsletter Phase 0 — Research (done)
 
 - [x] Catskill cadence playbook
 - [x] ABQ competitive landscape
 - [x] Event source inventory
 
-### Phase 1 — Beehiiv MVP (manual, 4–8 weeks)
+### Newsletter Phase 1 — Beehiiv MVP (manual, 4–8 weeks)
 
 1. Create beehiiv publication (consumer brand — separate from admin civic app)
 2. Set up two segments or separate templates: **Monday Events**, **Friday Events**
@@ -156,7 +158,7 @@ Phase 2: wire Legistar sync → draft "this week at City Council" for Monday new
 5. First sponsor ~week 5 (Catskill pattern)
 6. Track: open rate, subs, events listed per send
 
-### Phase 1 content targets
+### Newsletter Phase 1 content targets
 
 | Metric | Target |
 |--------|--------|
@@ -166,13 +168,13 @@ Phase 2: wire Legistar sync → draft "this week at City Council" for Monday new
 | Subscribers (90 days) | 500+ organic |
 | Monetization | None until week 5 |
 
-### Phase 2 — Pipeline (after habit proven)
+### Newsletter Phase 2 — Pipeline (after habit proven)
 
-- Legistar → council highlight drafts
+- Use civic pipeline transcripts → council highlight drafts (Legistar sync already live)
 - Optional event DB in Neon
 - Sponsor outreach (Fri send = weekend premium inventory)
 
-### Phase 3 — Monetization (Catskill arc)
+### Newsletter Phase 3 — Monetization (Catskill arc)
 
 Follow [`STRATEGIC-REFERENCE.md`](../catskill-crew/STRATEGIC-REFERENCE.md):
 
