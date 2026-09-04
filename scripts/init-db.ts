@@ -1,30 +1,23 @@
 import { config } from 'dotenv';
 import { neon } from '@neondatabase/serverless';
+import {
+  assertNotSantaFeDatabase,
+  assertNotSantaFeMeetingVideosSchema,
+} from '../src/lib/db/assert-not-sfm';
 
 config({ path: '.env.local' });
 
 const url = process.env.DATABASE_URL?.trim();
-if (!url) throw new Error('DATABASE_URL is not set in .env.local');
-
-/** Santa Fe Minutes Neon — never run ABQ init-db here (Sep 2026 schema clobber). */
-const SFM_NEON_HOST_MARKERS = ['ep-ancient-cell-', 'fancy-wildflower'];
-
-function parseHost(dbUrl: string): string {
-  try {
-    return new URL(dbUrl.replace(/^postgres(ql)?:/, 'http:')).hostname;
-  } catch {
-    return '';
-  }
+if (!url) {
+  console.error('DATABASE_URL is not set in .env.local');
+  process.exit(1);
 }
 
-const host = parseHost(url);
-if (SFM_NEON_HOST_MARKERS.some((m) => host.includes(m))) {
-  console.error(
-    'REFUSED: DATABASE_URL looks like Santa Fe Minutes Neon (ep-ancient-cell / fancy-wildflower).',
-  );
-  console.error(
-    'ABQ init-db DROPs meeting_videos. Use ABQ Neon (ep-blue-sky / empty-poetry) only.',
-  );
+try {
+  assertNotSantaFeDatabase(url, 'DATABASE_URL (init-db)');
+} catch (err) {
+  console.error('REFUSED:', err instanceof Error ? err.message : err);
+  console.error('ABQ init-db DROPs meeting_videos. Use ABQ Neon (ep-blue-sky / empty-poetry) only.');
   process.exit(1);
 }
 
@@ -32,17 +25,10 @@ const APPLY = process.argv.includes('--apply');
 const sql = neon(url);
 
 async function main() {
-  const cols = await sql`
-    SELECT column_name FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'meeting_videos'
-  `;
-  const names = cols.map((c: { column_name: string }) => c.column_name);
-  const hasSfmSchema = names.includes('event_id') && !names.includes('meeting_id');
-
-  if (hasSfmSchema) {
-    console.error(
-      'REFUSED: meeting_videos has Santa Fe Minutes schema (event_id). Wrong database.',
-    );
+  try {
+    await assertNotSantaFeMeetingVideosSchema(sql);
+  } catch (err) {
+    console.error('REFUSED:', err instanceof Error ? err.message : err);
     process.exit(1);
   }
 

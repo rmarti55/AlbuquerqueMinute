@@ -38,7 +38,12 @@ Open [http://localhost:3000/admin](http://localhost:3000/admin) — sign in with
 
 **Use a dedicated Neon project for ABQ only** (`ep-blue-sky-*` / `empty-poetry`). Never point `DATABASE_URL` at Santa Fe Minutes (`ep-ancient-cell-*`) — ABQ `scripts/init-db.ts` drops `meeting_videos` and will clobber SFM transcript data.
 
-`init-db.ts` requires `--apply` and refuses SFM hosts/schemas.
+`init-db.ts` requires `--apply` and refuses SFM hosts/schemas. `db:push` and the live app use the same guard via `assert-not-sfm-db.ts`.
+
+**Required reading before any DB command:**
+
+- [docs/database-safety.md](docs/database-safety.md) — rules, allowed/forbidden commands, host check
+- [docs/sep-2026-sfm-db-clobber.md](docs/sep-2026-sfm-db-clobber.md) — Sep 2026 incident report (why this matters)
 
 ## Deploy (Vercel)
 
