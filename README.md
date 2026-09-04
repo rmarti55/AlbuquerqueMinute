@@ -34,6 +34,12 @@ Open [http://localhost:3000/admin](http://localhost:3000/admin) — sign in with
 | `npm run db:push` | Push schema to Neon |
 | `npm run sync:legistar` | Manual Legistar sync (CLI) |
 
+## Database (Neon)
+
+**Use a dedicated Neon project for ABQ only** (`ep-blue-sky-*` / `empty-poetry`). Never point `DATABASE_URL` at Santa Fe Minutes (`ep-ancient-cell-*`) — ABQ `scripts/init-db.ts` drops `meeting_videos` and will clobber SFM transcript data.
+
+`init-db.ts` requires `--apply` and refuses SFM hosts/schemas.
+
 ## Deploy (Vercel)
 
 1. Create Neon project and set `DATABASE_URL`

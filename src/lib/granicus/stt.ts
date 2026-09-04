@@ -1,4 +1,5 @@
 import { spawn, execFile } from 'node:child_process';
+import { statSync, existsSync } from 'node:fs';
 import { promisify } from 'node:util';
 import { granicusPlayerUrl } from '@/lib/legistar/config';
 
@@ -8,6 +9,13 @@ export const CHROME_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 export const DEEPGRAM_USD_PER_MIN = 0.0043;
 const DEEPGRAM_TIMEOUT_MS = 45 * 60 * 1000;
+
+/** Full VOD download ceiling — abort if ffmpeg runs longer than this. */
+export const FFMPEG_DOWNLOAD_TIMEOUT_MS = 90 * 60 * 1000;
+/** Kill ffmpeg if output file size is unchanged for this long. */
+export const FFMPEG_STALL_MS = 5 * 60 * 1000;
+/** Progress heartbeat interval while downloading. */
+export const FFMPEG_PROGRESS_MS = 30 * 1000;
 
 export type DeepgramUtterance = {
   start: number;
@@ -22,6 +30,34 @@ export type TranscriptSegment = {
   duration: number;
   speakerId?: number;
 };
+
+export type DownloadGranicusAudioOptions = {
+  maxMinutes?: number | null;
+  timeoutMs?: number;
+  stallMs?: number;
+  onProgress?: (info: { bytes: number; elapsedSec: number }) => void;
+};
+
+export function requireSttEnv(): void {
+  const missing: string[] = [];
+  if (!process.env.DATABASE_URL?.trim()) missing.push('DATABASE_URL');
+  if (!process.env.DEEPGRAM_API_KEY?.trim()) missing.push('DEEPGRAM_API_KEY');
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required env in .env.local: ${missing.join(', ')}`,
+    );
+  }
+}
+
+export function databaseHostHint(): string {
+  const url = process.env.DATABASE_URL?.trim();
+  if (!url) return '(no DATABASE_URL)';
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '(invalid DATABASE_URL)';
+  }
+}
 
 export async function requireBinary(name: string): Promise<void> {
   try {
@@ -51,16 +87,38 @@ export async function fetchHlsUrl(clipId: number): Promise<{ playerUrl: string; 
   return { playerUrl, hlsUrl: match[1].replace(/&amp;/g, '&') };
 }
 
+function fileSizeSafe(path: string): number {
+  try {
+    return statSync(path).size;
+  } catch {
+    return 0;
+  }
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+
 export async function downloadGranicusAudio(
   hlsUrl: string,
   playerUrl: string,
   outPath: string,
-  options?: { maxMinutes?: number | null },
+  options?: DownloadGranicusAudioOptions,
 ): Promise<void> {
   const maxMinutes = options?.maxMinutes ?? null;
+  const timeoutMs = options?.timeoutMs ?? FFMPEG_DOWNLOAD_TIMEOUT_MS;
+  const stallMs = options?.stallMs ?? FFMPEG_STALL_MS;
   const refererHeader = `Referer: ${playerUrl}\r\n`;
   const args = [
     '-y',
+    '-reconnect',
+    '1',
+    '-reconnect_streamed',
+    '1',
+    '-reconnect_delay_max',
+    '5',
     '-user_agent',
     CHROME_UA,
     '-headers',
@@ -78,15 +136,64 @@ export async function downloadGranicusAudio(
     outPath,
   ];
 
+  const startedAt = Date.now();
+
   await new Promise<void>((resolve, reject) => {
     const child = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
     const errBuf: Buffer[] = [];
+    let lastBytes = 0;
+    let lastGrowthAt = Date.now();
+    let settled = false;
+
+    const finish = (err?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearInterval(progressTimer);
+      clearTimeout(overallTimer);
+      if (err) reject(err);
+      else resolve();
+    };
+
+    const progressTimer = setInterval(() => {
+      const bytes = fileSizeSafe(outPath);
+      const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+
+      if (bytes > lastBytes) {
+        lastBytes = bytes;
+        lastGrowthAt = Date.now();
+      } else if (bytes > 0 && Date.now() - lastGrowthAt >= stallMs) {
+        child.kill('SIGKILL');
+        finish(
+          new Error(
+            `ffmpeg stalled: no download progress for ${Math.round(stallMs / 60000)} min (at ${formatBytes(bytes)})`,
+          ),
+        );
+        return;
+      }
+
+      const msg = `[stt] download ${formatBytes(bytes)} · ${formatTimestamp(elapsedSec)} elapsed`;
+      if (options?.onProgress) {
+        options.onProgress({ bytes, elapsedSec });
+      } else {
+        console.log(msg);
+      }
+    }, FFMPEG_PROGRESS_MS);
+
+    const overallTimer = setTimeout(() => {
+      child.kill('SIGKILL');
+      finish(
+        new Error(
+          `ffmpeg timed out after ${Math.round(timeoutMs / 60000)} min (at ${formatBytes(fileSizeSafe(outPath))})`,
+        ),
+      );
+    }, timeoutMs);
+
     child.stderr.on('data', (c: Buffer) => errBuf.push(c));
-    child.on('error', (err) => reject(new Error(`ffmpeg spawn failed: ${err.message}`)));
+    child.on('error', (err) => finish(new Error(`ffmpeg spawn failed: ${err.message}`)));
     child.on('close', (code) => {
-      if (code === 0) return resolve();
+      if (code === 0) return finish();
       const stderr = Buffer.concat(errBuf).toString().slice(-500);
-      reject(new Error(`ffmpeg exited ${code}: ${stderr}`));
+      finish(new Error(`ffmpeg exited ${code}: ${stderr}`));
     });
   });
 }
@@ -126,6 +233,10 @@ export async function transcribeAudio(audioPath: string): Promise<DeepgramUttera
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (!apiKey) {
     throw new Error('DEEPGRAM_API_KEY missing — set it in .env.local');
+  }
+
+  if (!existsSync(audioPath)) {
+    throw new Error(`Audio file not found: ${audioPath}`);
   }
 
   const params = new URLSearchParams({
@@ -214,4 +325,8 @@ export function countWords(text: string): number {
 
 export function estimateDeepgramCost(durationSec: number): number {
   return (durationSec / 60) * DEEPGRAM_USD_PER_MIN;
+}
+
+export function granicusAudioCachePath(clipId: number, root = process.cwd()): string {
+  return `${root}/data/stt-audio/clip-${clipId}.mp3`;
 }

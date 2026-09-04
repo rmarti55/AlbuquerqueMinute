@@ -78,4 +78,11 @@ npm run stt:smoke -- --clip 556 --minutes 5
 
 Cost: ~$0.0043/min (Deepgram nova-2). A 3-hour Council session ≈ $0.75.
 
+Download guardrails (local CLI):
+
+- 90-minute overall ffmpeg timeout
+- 5-minute stall detection (kills if file stops growing)
+- Progress logged every 30s
+- Audio cached at `data/stt-audio/clip-{id}.mp3` (reused on retry unless `--force`)
+
 View/copy: `/admin` → **Copy** in Transcript column → `/admin/meetings/{id}`.

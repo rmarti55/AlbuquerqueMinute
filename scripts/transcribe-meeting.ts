@@ -2,19 +2,21 @@
 /**
  * Full Granicus STT → meeting_transcripts. Worker-host / local CLI only.
  */
-import { mkdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { config } from 'dotenv';
 import { eq } from 'drizzle-orm';
 import {
   countWords,
+  databaseHostHint,
   downloadGranicusAudio,
   estimateDeepgramCost,
   fetchHlsUrl,
   formatTimestamp,
   formatTranscriptForCopy,
+  granicusAudioCachePath,
   requireBinary,
+  requireSttEnv,
   transcribeAudio,
   utterancesToSegments,
 } from '../src/lib/granicus/stt';
@@ -28,6 +30,8 @@ import {
 } from '../src/lib/db/transcript-persist';
 
 config({ path: '.env.local' });
+
+const AUDIO_DIR = join(process.cwd(), 'data', 'stt-audio');
 
 type Args = {
   meetingId: number | null;
@@ -114,8 +118,20 @@ async function resolveMeeting(args: Args) {
   return row;
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
 async function main() {
+  requireSttEnv();
   const args = parseArgs();
+
+  await requireBinary('ffmpeg');
+  await requireBinary('curl');
+
+  console.log(`[stt] database ${databaseHostHint()}`);
+
   const meeting = await resolveMeeting(args);
 
   const existing = await getTranscriptByVideoId(meeting.videoId);
@@ -126,28 +142,36 @@ async function main() {
     return;
   }
 
-  await requireBinary('ffmpeg');
-  await requireBinary('curl');
-
   const clipId = meeting.granicusClipId!;
-  const workDir = join(tmpdir(), `abq-stt-${clipId}-${Date.now()}`);
-  const audioPath = join(workDir, `clip-${clipId}.mp3`);
-  mkdirSync(workDir, { recursive: true });
+  mkdirSync(AUDIO_DIR, { recursive: true });
+  const audioPath = granicusAudioCachePath(clipId);
 
   const transcriptId = await upsertTranscriptProcessing(meeting.meetingId, meeting.videoId);
+  console.log(`[stt] transcript id=${transcriptId} status=processing`);
 
   console.log(`[stt] meeting ${meeting.meetingId} · clip ${clipId} · ${meeting.title}`);
   if (args.minutes) console.log(`[stt] limiting to first ${args.minutes} minutes`);
 
-  try {
-    console.log('[stt] fetching player HTML…');
-    const { playerUrl, hlsUrl } = await fetchHlsUrl(clipId);
-    console.log(`[stt] HLS: ${hlsUrl.slice(0, 80)}…`);
+  let downloaded = false;
 
-    console.log('[stt] downloading audio with ffmpeg…');
-    await downloadGranicusAudio(hlsUrl, playerUrl, audioPath, {
-      maxMinutes: args.minutes,
-    });
+  try {
+    const cacheExists = existsSync(audioPath);
+    const useCache = cacheExists && !args.force && args.minutes === null;
+
+    if (useCache) {
+      const bytes = statSync(audioPath).size;
+      console.log(`[stt] using cached audio ${audioPath} (${formatBytes(bytes)})`);
+    } else {
+      console.log('[stt] fetching player HTML…');
+      const { playerUrl, hlsUrl } = await fetchHlsUrl(clipId);
+      console.log(`[stt] HLS: ${hlsUrl.slice(0, 80)}…`);
+      console.log(`[stt] downloading audio → ${audioPath}`);
+      await downloadGranicusAudio(hlsUrl, playerUrl, audioPath, {
+        maxMinutes: args.minutes,
+      });
+      downloaded = true;
+      console.log(`[stt] download complete (${formatBytes(statSync(audioPath).size)})`);
+    }
 
     console.log('[stt] transcribing with Deepgram nova-2…');
     const utterances = await transcribeAudio(audioPath);
@@ -173,13 +197,10 @@ async function main() {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await markTranscriptFailed(transcriptId, message);
-    throw err;
-  } finally {
-    try {
-      rmSync(workDir, { recursive: true, force: true });
-    } catch {
-      /* ignore */
+    if (downloaded || existsSync(audioPath)) {
+      console.error(`[stt] partial audio kept at ${audioPath}`);
     }
+    throw err;
   }
 }
 
