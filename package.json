@@ -12,7 +12,8 @@
     "db:init": "tsx scripts/init-db.ts",
     "sync:legistar": "tsx scripts/sync-legistar.ts",
     "sync:catskill-crew": "tsx scripts/sync-catskill-crew.ts",
-    "stt:smoke": "tsx scripts/stt-granicus-smoke.ts"
+    "stt:smoke": "tsx scripts/stt-granicus-smoke.ts",
+    "stt:transcribe": "tsx scripts/transcribe-meeting.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",

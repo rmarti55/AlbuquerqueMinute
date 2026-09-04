@@ -30,7 +30,7 @@ Legistar `EventMedia` holds the **Granicus clip id** when a recording exists. `E
 |-------|-------|
 | Player | `https://cabq.granicus.com/player/clip/{clipId}?view_id=2&redirect=true` |
 | HLS | Embedded in player HTML as `video_url="…/playlist.m3u8"` |
-| STT | Phase 2 — Deepgram nova-2 via ffmpeg segment download |
+| STT | Deepgram nova-2 via ffmpeg HLS download (local CLI) |
 
 **Do not use** city-hosted `/videos/{clip}/captions.vtt` — live auto-captions are garbled.
 
@@ -56,6 +56,26 @@ v1: manual YouTube paste only. Auto-match is Phase 2+.
 
 ## Phase roadmap
 
-1. **Phase 1 (current):** Legistar sync + admin meetings table
-2. **Phase 2:** `meeting_transcripts` table, manual STT on 3–5 recent Council clips, then Hetzner worker
-3. **Phase 3:** `/admin/article` — paste transcript → OpenRouter article draft
+1. **Phase 1 (done):** Legistar sync + admin meetings table
+2. **Phase 2 (current):** `meeting_transcripts` table + local CLI STT + admin copy UI
+3. **Phase 2b (later):** Hetzner VPS worker (auto queue, same recipe as Santa Fe Minutes)
+4. **Phase 3:** `/admin/generate` — paste transcript → OpenRouter article draft
+
+### Phase 2 — local transcription CLI
+
+Set `DEEPGRAM_API_KEY` in `.env.local`. STT runs **locally only** — never on Vercel.
+
+```bash
+# Full Council VOD → meeting_transcripts
+npm run stt:transcribe -- --clip 556
+
+# Or by internal meeting id
+npm run stt:transcribe -- --meeting-id 123
+
+# Debug slice (cheap)
+npm run stt:smoke -- --clip 556 --minutes 5
+```
+
+Cost: ~$0.0043/min (Deepgram nova-2). A 3-hour Council session ≈ $0.75.
+
+View/copy: `/admin` → **Copy** in Transcript column → `/admin/meetings/{id}`.

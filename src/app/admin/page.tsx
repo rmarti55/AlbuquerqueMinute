@@ -20,7 +20,7 @@ function EmptyCell() {
 export default async function AdminPage() {
   const { lookback, lookahead } = getSyncWindow();
   let rows: Awaited<ReturnType<typeof listMeetingsInWindow>> = [];
-  let counts = { total: 0, withVideo: 0, upcoming: 0 };
+  let counts = { total: 0, withVideo: 0, upcoming: 0, transcribed: 0 };
   let dbError: string | null = null;
 
   try {
@@ -66,6 +66,9 @@ export default async function AdminPage() {
             </span>
             <span>
               <strong className="text-zinc-900">{counts.upcoming}</strong> upcoming
+            </span>
+            <span>
+              <strong className="text-zinc-900">{counts.transcribed}</strong> transcribed
             </span>
           </div>
 
@@ -124,7 +127,22 @@ export default async function AdminPage() {
                     )}
                   </div>
                   <div className="whitespace-nowrap">
-                    <EmptyCell />
+                    {row.transcriptStatus === 'completed' ? (
+                      <Link href={`/admin/meetings/${row.id}`} className={linkClass}>
+                        Copy
+                      </Link>
+                    ) : row.transcriptStatus === 'processing' ? (
+                      <span className="text-xs text-amber-700">Running…</span>
+                    ) : row.transcriptStatus === 'failed' ? (
+                      <span
+                        className="text-xs text-red-700"
+                        title={row.transcriptError ?? 'Transcription failed'}
+                      >
+                        Failed
+                      </span>
+                    ) : (
+                      <EmptyCell />
+                    )}
                   </div>
                   <div className="whitespace-nowrap">
                     {row.sourceUrl ? (
