@@ -98,7 +98,6 @@ export async function markTranscriptCompleted(
     .insert(meetingTranscripts)
     .values({
       meetingId,
-      videoId,
       ...payload,
     })
     .returning({ id: meetingTranscripts.id });
@@ -141,7 +140,6 @@ export async function markTranscriptFailed(
     .insert(meetingTranscripts)
     .values({
       meetingId,
-      videoId,
       ...payload,
       transcriptSource: 'stt',
     })
