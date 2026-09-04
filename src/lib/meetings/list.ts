@@ -39,7 +39,7 @@ export async function listMeetingsInWindow(): Promise<MeetingRow[]> {
     })
     .from(meetings)
     .leftJoin(meetingVideos, sql`${meetingVideos.meetingId} = ${meetings.id}`)
-    .leftJoin(meetingTranscripts, eq(meetingTranscripts.videoId, meetingVideos.id))
+    .leftJoin(meetingTranscripts, eq(meetingTranscripts.meetingId, meetings.id))
     .where(
       and(
         gte(meetings.startAt, lookback.toJSDate()),
@@ -82,7 +82,7 @@ export async function getMeetingWithTranscript(meetingId: number) {
     })
     .from(meetings)
     .leftJoin(meetingVideos, eq(meetingVideos.meetingId, meetings.id))
-    .leftJoin(meetingTranscripts, eq(meetingTranscripts.videoId, meetingVideos.id))
+    .leftJoin(meetingTranscripts, eq(meetingTranscripts.meetingId, meetings.id))
     .where(eq(meetings.id, meetingId))
     .limit(1);
 

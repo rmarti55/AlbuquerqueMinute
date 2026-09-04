@@ -72,7 +72,7 @@ async function main() {
       matched_at timestamptz DEFAULT now()
     )
   `;
-  await sql`CREATE INDEX IF NOT EXISTS meeting_videos_meeting_idx ON meeting_videos (meeting_id)`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS meeting_videos_meeting_idx ON meeting_videos (meeting_id)`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS meeting_files (
@@ -89,7 +89,7 @@ async function main() {
     CREATE TABLE IF NOT EXISTS meeting_transcripts (
       id serial PRIMARY KEY,
       meeting_id integer NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
-      video_id integer NOT NULL REFERENCES meeting_videos(id) ON DELETE CASCADE,
+      video_id integer REFERENCES meeting_videos(id) ON DELETE SET NULL,
       raw_transcript text,
       segments_json text,
       status text NOT NULL DEFAULT 'pending',
@@ -99,8 +99,7 @@ async function main() {
       updated_at timestamptz DEFAULT now()
     )
   `;
-  await sql`CREATE UNIQUE INDEX IF NOT EXISTS meeting_transcripts_video_idx ON meeting_transcripts (video_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS meeting_transcripts_meeting_idx ON meeting_transcripts (meeting_id)`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS meeting_transcripts_meeting_idx ON meeting_transcripts (meeting_id)`;
   await sql`CREATE INDEX IF NOT EXISTS meeting_transcripts_status_idx ON meeting_transcripts (status)`;
 
   console.log('Database schema ready.');

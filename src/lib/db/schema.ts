@@ -44,7 +44,7 @@ export const meetingVideos = pgTable(
     matchedAt: timestamp('matched_at', { withTimezone: true }).defaultNow(),
   },
   (table) => ({
-    meetingIdx: index('meeting_videos_meeting_idx').on(table.meetingId),
+    meetingIdx: uniqueIndex('meeting_videos_meeting_idx').on(table.meetingId),
   }),
 );
 
@@ -71,9 +71,9 @@ export const meetingTranscripts = pgTable(
     meetingId: integer('meeting_id')
       .notNull()
       .references(() => meetings.id, { onDelete: 'cascade' }),
-    videoId: integer('video_id')
-      .notNull()
-      .references(() => meetingVideos.id, { onDelete: 'cascade' }),
+    videoId: integer('video_id').references(() => meetingVideos.id, {
+      onDelete: 'set null',
+    }),
     rawTranscript: text('raw_transcript'),
     segmentsJson: text('segments_json'),
     status: text('status').notNull().default('pending'),
@@ -83,8 +83,7 @@ export const meetingTranscripts = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => ({
-    videoIdx: uniqueIndex('meeting_transcripts_video_idx').on(table.videoId),
-    meetingIdx: index('meeting_transcripts_meeting_idx').on(table.meetingId),
+    meetingIdx: uniqueIndex('meeting_transcripts_meeting_idx').on(table.meetingId),
     statusIdx: index('meeting_transcripts_status_idx').on(table.status),
   }),
 );

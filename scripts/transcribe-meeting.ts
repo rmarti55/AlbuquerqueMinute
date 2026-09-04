@@ -2,7 +2,7 @@
 /**
  * Full Granicus STT → meeting_transcripts. Worker-host / local CLI only.
  */
-import { existsSync, mkdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { config } from 'dotenv';
 import { eq } from 'drizzle-orm';
@@ -22,7 +22,7 @@ import {
 } from '../src/lib/granicus/stt';
 import { getDb, meetingVideos, meetings } from '../src/lib/db';
 import {
-  getTranscriptByVideoId,
+  getTranscriptByMeetingId,
   markTranscriptCompleted,
   markTranscriptFailed,
   serializeSegments,
@@ -32,6 +32,14 @@ import {
 config({ path: '.env.local' });
 
 const AUDIO_DIR = join(process.cwd(), 'data', 'stt-audio');
+const TRANSCRIPT_DIR = join(process.cwd(), 'data', 'stt-transcripts');
+
+function writeTranscriptBackup(clipId: number, rawTranscript: string): string {
+  mkdirSync(TRANSCRIPT_DIR, { recursive: true });
+  const path = join(TRANSCRIPT_DIR, `clip-${clipId}.txt`);
+  writeFileSync(path, rawTranscript, 'utf8');
+  return path;
+}
 
 type Args = {
   meetingId: number | null;
@@ -134,7 +142,7 @@ async function main() {
 
   const meeting = await resolveMeeting(args);
 
-  const existing = await getTranscriptByVideoId(meeting.videoId);
+  const existing = await getTranscriptByMeetingId(meeting.meetingId);
   if (existing?.status === 'completed' && !args.force) {
     console.log(
       `[stt] transcript already completed for meeting ${meeting.meetingId} (video ${meeting.videoId}) — use --force to re-run`,
@@ -181,22 +189,27 @@ async function main() {
 
     const rawTranscript = formatTranscriptForCopy(utterances);
     const segmentsJson = serializeSegments(utterancesToSegments(utterances));
-    await markTranscriptCompleted(transcriptId, { rawTranscript, segmentsJson });
+    const savedId = await markTranscriptCompleted(transcriptId, meeting.meetingId, meeting.videoId, {
+      rawTranscript,
+      segmentsJson,
+    });
+    const backupPath = writeTranscriptBackup(clipId, rawTranscript);
 
     const durationSec = utterances[utterances.length - 1]?.end ?? 0;
     const wordCount = countWords(utterances.map((u) => u.transcript).join(' '));
     const costUsd = estimateDeepgramCost(durationSec);
 
     console.log('\n--- results ---');
-    console.log(`transcript id: ${transcriptId}`);
+    console.log(`transcript id: ${savedId}`);
     console.log(`duration: ${formatTimestamp(durationSec)} (${durationSec.toFixed(1)}s)`);
     console.log(`utterances: ${utterances.length}`);
     console.log(`words: ${wordCount}`);
     console.log(`estimated cost: $${costUsd.toFixed(4)}`);
+    console.log(`backup: ${backupPath}`);
     console.log(`view: /admin/meetings/${meeting.meetingId}`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    await markTranscriptFailed(transcriptId, message);
+    await markTranscriptFailed(transcriptId, meeting.meetingId, meeting.videoId, message);
     if (downloaded || existsSync(audioPath)) {
       console.error(`[stt] partial audio kept at ${audioPath}`);
     }
