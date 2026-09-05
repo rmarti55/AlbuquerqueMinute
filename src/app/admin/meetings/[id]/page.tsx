@@ -3,7 +3,12 @@ import { notFound } from 'next/navigation';
 import { formatMeetingDateTime } from '@/lib/datetime';
 import { countWords } from '@/lib/granicus/stt';
 import { getMeetingWithTranscript } from '@/lib/meetings/list';
-import { CopyButton } from '../copy-button';
+import { parseRosterJson } from '@/lib/roster/build';
+import { allRosterPeople } from '@/lib/roster/types';
+import { parseSpeakerMapJson } from '@/lib/speakers/resolve';
+import { ResolveButton } from '../resolve-button';
+import { SpeakerMap } from '../speaker-map';
+import { TranscriptPanel } from '../transcript-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +25,9 @@ export default async function AdminMeetingPage({
   if (!meeting) notFound();
 
   const wordCount = meeting.rawTranscript ? countWords(meeting.rawTranscript) : 0;
+  const mappings = parseSpeakerMapJson(meeting.speakerMapJson);
+  const roster = parseRosterJson(meeting.rosterJson);
+  const rosterNames = roster ? allRosterPeople(roster).map((person) => person.name) : [];
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8 lg:px-10">
@@ -78,13 +86,16 @@ export default async function AdminMeetingPage({
               <p className="mt-1 text-xs text-zinc-500">{wordCount.toLocaleString()} words</p>
             )}
           </div>
-          {meeting.rawTranscript && <CopyButton text={meeting.rawTranscript} />}
+          {meeting.transcriptStatus === 'completed' && meeting.rawTranscript && (
+            <ResolveButton meetingId={meeting.id} />
+          )}
         </div>
 
         {meeting.transcriptStatus === 'completed' && meeting.rawTranscript ? (
-          <pre className="max-h-[70vh] overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-xs leading-relaxed whitespace-pre-wrap text-zinc-800">
-            {meeting.rawTranscript}
-          </pre>
+          <TranscriptPanel
+            rawTranscript={meeting.rawTranscript}
+            resolvedTranscript={meeting.resolvedTranscript}
+          />
         ) : meeting.transcriptStatus === 'processing' ? (
           <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             Transcript is running. Refresh when the CLI finishes.
@@ -100,6 +111,10 @@ export default async function AdminMeetingPage({
           </p>
         )}
       </section>
+
+      {meeting.transcriptStatus === 'completed' && (
+        <SpeakerMap meetingId={meeting.id} mappings={mappings} rosterNames={rosterNames} />
+      )}
     </main>
   );
 }

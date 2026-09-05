@@ -12,10 +12,13 @@ export function SyncButton() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/admin/sync-legistar', { method: 'POST' });
+      const res = await fetch('/api/admin/sync-meetings', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Sync failed');
-      setMessage(`Synced ${data.upserted} meetings (${data.withVideo} with video)`);
+      const extra = Array.isArray(data.errors) && data.errors.length
+        ? ` · ${data.errors.length} source error(s)`
+        : '';
+      setMessage(`Synced ${data.upserted} meetings (${data.withVideo} with video)${extra}`);
       router.refresh();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Sync failed');
@@ -32,7 +35,7 @@ export function SyncButton() {
         disabled={loading}
         className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
       >
-        {loading ? 'Syncing…' : 'Sync Legistar'}
+        {loading ? 'Syncing…' : 'Sync meetings'}
       </button>
       {message && <span className="text-xs text-zinc-500">{message}</span>}
     </div>

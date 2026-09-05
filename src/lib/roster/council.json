@@ -1,0 +1,69 @@
+{
+  "term": "27th Council",
+  "officials": [
+    {
+      "name": "Stephanie Telles",
+      "role": "Councilor",
+      "district": "1",
+      "aliases": ["Stephanie W. Telles", "Telle"],
+      "activeFrom": "2025-12-17"
+    },
+    {
+      "name": "Joaquín Baca",
+      "role": "Councilor",
+      "district": "2",
+      "aliases": ["Joaquin Baca"],
+      "activeFrom": "2024-01-01"
+    },
+    {
+      "name": "Klarissa J. Peña",
+      "role": "Councilor",
+      "district": "3",
+      "meetingRole": "President",
+      "aliases": ["Klarissa Peña", "Klarissa Pena", "Peña", "Pena"],
+      "activeFrom": "2013-12-01"
+    },
+    {
+      "name": "Brook Bassan",
+      "role": "Councilor",
+      "district": "4",
+      "activeFrom": "2020-01-01"
+    },
+    {
+      "name": "Dan Lewis",
+      "role": "Councilor",
+      "district": "5",
+      "activeFrom": "2022-01-01"
+    },
+    {
+      "name": "Nichole Rogers",
+      "role": "Councilor",
+      "district": "6",
+      "aliases": ["Nicole Rogers"],
+      "activeFrom": "2024-01-01"
+    },
+    {
+      "name": "Tammy Fiebelkorn",
+      "role": "Councilor",
+      "district": "7",
+      "activeFrom": "2022-01-01"
+    },
+    {
+      "name": "Dan Champine",
+      "role": "Councilor",
+      "district": "8",
+      "meetingRole": "Vice President",
+      "activeFrom": "2024-01-01"
+    },
+    {
+      "name": "Renée Grout",
+      "role": "Councilor",
+      "district": "9",
+      "aliases": ["Renee Grout"],
+      "activeFrom": "2022-01-01"
+    }
+  ],
+  "staff": [
+    { "name": "Tim Keller", "role": "Mayor" }
+  ]
+}

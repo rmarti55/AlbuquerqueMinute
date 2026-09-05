@@ -1,8 +1,4 @@
-import {
-  granicusPlayerUrl,
-  LEGISTAR_BODY_IDS,
-  LEGISTAR_CLIENT,
-} from './config';
+import { granicusPlayerUrl, type LegistarTenant } from './config';
 
 export interface LegistarEvent {
   EventId: number;
@@ -20,16 +16,17 @@ export interface LegistarEvent {
   EventMinutesStatusName: string | null;
 }
 
-const LEGISTAR_BASE = `https://webapi.legistar.com/v1/${LEGISTAR_CLIENT}`;
-
-export async function fetchLegistarEvents(filter?: string): Promise<LegistarEvent[]> {
+export async function fetchLegistarEvents(
+  tenant: LegistarTenant,
+  filter?: string,
+): Promise<LegistarEvent[]> {
   const params = new URLSearchParams({
     $orderby: 'EventDate desc',
     $top: '500',
   });
   if (filter) params.set('$filter', filter);
 
-  const url = `${LEGISTAR_BASE}/events?${params.toString()}`;
+  const url = `https://webapi.legistar.com/v1/${tenant.client}/events?${params.toString()}`;
   const res = await fetch(url, {
     headers: { Accept: 'application/json' },
     next: { revalidate: 0 },
@@ -37,11 +34,13 @@ export async function fetchLegistarEvents(filter?: string): Promise<LegistarEven
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Legistar events failed (${res.status}): ${body.slice(0, 200)}`);
+    throw new Error(
+      `Legistar ${tenant.client} events failed (${res.status}): ${body.slice(0, 200)}`,
+    );
   }
 
   const data = (await res.json()) as LegistarEvent[];
-  return data.filter((e) => LEGISTAR_BODY_IDS.has(e.EventBodyId));
+  return data.filter((e) => tenant.bodyIds.has(e.EventBodyId));
 }
 
 export function isCanceled(event: LegistarEvent): boolean {
@@ -63,17 +62,19 @@ export function parseEventMedia(event: LegistarEvent): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-export function videoFromEvent(event: LegistarEvent) {
+export function videoFromEvent(event: LegistarEvent, tenant: LegistarTenant) {
   const clipId = parseEventMedia(event);
   if (!clipId) return null;
   return {
     granicusClipId: clipId,
-    playerUrl: granicusPlayerUrl(clipId),
-    matchMethod: 'legistar_event_media' as const,
+    playerUrl: granicusPlayerUrl(clipId, tenant),
+    matchMethod: 'legistar_event_media',
   };
 }
 
-export function filesFromEvent(event: LegistarEvent): Array<{ type: string; url: string; name: string }> {
+export function filesFromEvent(
+  event: LegistarEvent,
+): Array<{ type: string; url: string; name: string }> {
   const files: Array<{ type: string; url: string; name: string }> = [];
   if (event.EventAgendaFile) {
     files.push({ type: 'agenda', url: event.EventAgendaFile, name: 'Agenda' });

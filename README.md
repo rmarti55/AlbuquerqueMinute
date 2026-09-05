@@ -40,6 +40,7 @@ Open [http://localhost:3000/admin](http://localhost:3000/admin) — sign in with
 | `npm run db:push` | Push schema to Neon (runs SFM guard first) |
 | `npm run db:init -- --apply` | Fresh ABQ database only — DROP + recreate tables |
 | `npm run sync:legistar` | Manual Legistar sync (CLI) |
+| `npm run speakers:resolve` | Map Speaker N → roster names on existing transcripts |
 | `npm run stt:transcribe` | Local Granicus → Deepgram → DB (see abq-sources) |
 | `npm run stt:smoke` | Cheap STT debug slice (ffmpeg + Deepgram) |
 | `npm run sync:catskill-crew` | Refresh Catskill Crew research corpus |

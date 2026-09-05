@@ -64,13 +64,20 @@ export async function markTranscriptCompleted(
   transcriptId: number,
   meetingId: number,
   videoId: number,
-  data: { rawTranscript: string; segmentsJson: string },
+  data: {
+    rawTranscript: string;
+    segmentsJson: string;
+    resolvedTranscript?: string | null;
+    speakerMapJson?: string | null;
+  },
 ): Promise<number> {
   const db = getDb();
   const payload = {
     status: 'completed' as const,
     rawTranscript: data.rawTranscript,
     segmentsJson: data.segmentsJson,
+    resolvedTranscript: data.resolvedTranscript ?? null,
+    speakerMapJson: data.speakerMapJson ?? null,
     transcriptSource: 'stt',
     errorMessage: null,
     videoId,

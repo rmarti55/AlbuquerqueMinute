@@ -10,10 +10,15 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "tsx scripts/assert-not-sfm-db.ts && drizzle-kit push",
     "db:init": "tsx scripts/init-db.ts",
+    "db:migrate-source-id": "tsx scripts/migrate-source-id.ts",
     "sync:legistar": "tsx scripts/sync-legistar.ts",
+    "sync:meetings": "tsx scripts/sync-meetings.ts",
+    "test:ingest": "tsx --test src/lib/planning/parse.test.ts src/lib/cpoa/parse.test.ts src/lib/youtube/catalog.test.ts src/lib/legistar/calendar-html.test.ts",
     "sync:catskill-crew": "tsx scripts/sync-catskill-crew.ts",
     "stt:smoke": "tsx scripts/stt-granicus-smoke.ts",
-    "stt:transcribe": "tsx scripts/transcribe-meeting.ts"
+    "stt:transcribe": "tsx scripts/transcribe-meeting.ts",
+    "speakers:resolve": "tsx scripts/resolve-speakers.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",
@@ -37,6 +42,7 @@
     "eslint-config-next": "^15.3.3",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^5.0.0"
   }
 }

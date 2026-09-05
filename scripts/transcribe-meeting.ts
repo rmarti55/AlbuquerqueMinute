@@ -28,6 +28,11 @@ import {
   serializeSegments,
   upsertTranscriptProcessing,
 } from '../src/lib/db/transcript-persist';
+import { fetchCouncilOfficeRecordsSafe } from '../src/lib/legistar/office-records';
+import { buildMeetingRoster } from '../src/lib/roster/build';
+import { allRosterPeople } from '../src/lib/roster/types';
+import { deepgramKeywords } from '../src/lib/roster/names';
+import { resolveAndPersistMeeting } from '../src/lib/speakers/apply';
 
 config({ path: '.env.local' });
 
@@ -56,7 +61,11 @@ function parseArgs(): Args {
   let force = false;
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--meeting-id' && args[i + 1]) {
+    if (args[i] === '--youtube' || args[i] === '--youtube-id') {
+      throw new Error(
+        'YouTube STT is not enabled. Video pointers are stored; do not download or transcribe yet.',
+      );
+    } else if (args[i] === '--meeting-id' && args[i + 1]) {
       meetingId = Number.parseInt(args[++i], 10);
     } else if (args[i] === '--clip' && args[i + 1]) {
       clipId = Number.parseInt(args[++i], 10);
@@ -92,6 +101,7 @@ async function resolveMeeting(args: Args) {
         meetingId: meetings.id,
         body: meetings.body,
         title: meetings.title,
+        startAt: meetings.startAt,
         videoId: meetingVideos.id,
         granicusClipId: meetingVideos.granicusClipId,
         playerUrl: meetingVideos.playerUrl,
@@ -109,14 +119,15 @@ async function resolveMeeting(args: Args) {
 
   const rows = await db
     .select({
-      meetingId: meetings.id,
-      body: meetings.body,
-      title: meetings.title,
-      videoId: meetingVideos.id,
-      granicusClipId: meetingVideos.granicusClipId,
-      playerUrl: meetingVideos.playerUrl,
-    })
-    .from(meetingVideos)
+        meetingId: meetings.id,
+        body: meetings.body,
+        title: meetings.title,
+        startAt: meetings.startAt,
+        videoId: meetingVideos.id,
+        granicusClipId: meetingVideos.granicusClipId,
+        playerUrl: meetingVideos.playerUrl,
+      })
+      .from(meetingVideos)
     .innerJoin(meetings, eq(meetings.id, meetingVideos.meetingId))
     .where(eq(meetingVideos.granicusClipId, args.clipId!))
     .limit(1);
@@ -181,8 +192,12 @@ async function main() {
       console.log(`[stt] download complete (${formatBytes(statSync(audioPath).size)})`);
     }
 
-    console.log('[stt] transcribing with Deepgram nova-2…');
-    const utterances = await transcribeAudio(audioPath);
+    const officeRecords = await fetchCouncilOfficeRecordsSafe();
+    const roster = buildMeetingRoster(meeting.startAt, officeRecords);
+    const keywords = deepgramKeywords(allRosterPeople(roster));
+
+    console.log(`[stt] transcribing with Deepgram nova-2 (${keywords.length} roster keywords)…`);
+    const utterances = await transcribeAudio(audioPath, { keywords });
     if (utterances.length === 0) {
       throw new Error('Deepgram returned no utterances');
     }
@@ -193,6 +208,7 @@ async function main() {
       rawTranscript,
       segmentsJson,
     });
+    const resolved = await resolveAndPersistMeeting(meeting.meetingId);
     const backupPath = writeTranscriptBackup(clipId, rawTranscript);
 
     const durationSec = utterances[utterances.length - 1]?.end ?? 0;
@@ -206,6 +222,10 @@ async function main() {
     console.log(`words: ${wordCount}`);
     console.log(`estimated cost: $${costUsd.toFixed(4)}`);
     console.log(`backup: ${backupPath}`);
+    if (resolved) {
+      const named = resolved.mappings.filter((m) => m.resolvedName).length;
+      console.log(`speakers resolved: ${named}/${resolved.mappings.length}`);
+    }
     console.log(`view: /admin/meetings/${meeting.meetingId}`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

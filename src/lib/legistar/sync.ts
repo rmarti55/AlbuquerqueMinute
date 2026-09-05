@@ -1,12 +1,7 @@
-import { and, eq } from 'drizzle-orm';
-import {
-  getDb,
-  meetings,
-  meetingVideos,
-  meetingFiles,
-  meetingTranscripts,
-} from '@/lib/db';
 import { formatLegistarDate, getSyncWindow, parseLegistarStartAt } from '@/lib/datetime';
+import { fetchHtml } from '@/lib/ingest/html';
+import { upsertNormalizedMeetings } from '@/lib/meetings/upsert';
+import type { NormalizedMeeting, SourceSyncCounts } from '@/lib/meetings/types';
 import {
   eventTitle,
   fetchLegistarEvents,
@@ -14,6 +9,12 @@ import {
   isCanceled,
   videoFromEvent,
 } from './api';
+import {
+  calendarUrlFor,
+  parseAbcwuaPublishedSchedule,
+  parseLegistarCalendarHtml,
+} from './calendar-html';
+import { ABCWUA_TENANT, CABQ_TENANT, type LegistarTenant } from './config';
 
 export interface SyncResult {
   fetched: number;
@@ -25,148 +26,98 @@ export interface SyncResult {
   window: { lookback: string; lookahead: string };
 }
 
-async function hasCompletedTranscript(meetingId: number): Promise<boolean> {
-  const db = getDb();
-  const rows = await db
-    .select({ id: meetingTranscripts.id })
-    .from(meetingTranscripts)
-    .where(
-      and(
-        eq(meetingTranscripts.meetingId, meetingId),
-        eq(meetingTranscripts.status, 'completed'),
-      ),
-    )
-    .limit(1);
-  return rows.length > 0;
-}
-
-async function syncMeetingVideo(
-  meetingId: number,
-  video: ReturnType<typeof videoFromEvent>,
-): Promise<'updated' | 'inserted' | 'preserved' | 'deleted' | 'none'> {
-  const db = getDb();
-  const existing = await db
-    .select()
-    .from(meetingVideos)
-    .where(eq(meetingVideos.meetingId, meetingId))
-    .limit(1);
-  const row = existing[0];
-
-  if (video) {
-    if (row) {
-      await db
-        .update(meetingVideos)
-        .set({
-          granicusClipId: video.granicusClipId,
-          playerUrl: video.playerUrl,
-          matchMethod: video.matchMethod,
-          matchedAt: new Date(),
-        })
-        .where(eq(meetingVideos.id, row.id));
-      return 'updated';
-    }
-
-    await db.insert(meetingVideos).values({
-      meetingId,
-      granicusClipId: video.granicusClipId,
-      playerUrl: video.playerUrl,
-      matchMethod: video.matchMethod,
-    });
-    return 'inserted';
-  }
-
-  if (!row) return 'none';
-
-  if (await hasCompletedTranscript(meetingId)) {
-    return 'preserved';
-  }
-
-  await db.delete(meetingVideos).where(eq(meetingVideos.id, row.id));
-  return 'deleted';
-}
-
-export async function syncLegistarMeetings(): Promise<SyncResult> {
+function eventFilter(): { filter: string; window: SyncResult['window'] } {
   const { lookback, lookahead } = getSyncWindow();
-  const filter = `EventDate ge datetime'${formatLegistarDate(lookback)}' and EventDate le datetime'${formatLegistarDate(lookahead)}'`;
-
-  const events = await fetchLegistarEvents(filter);
-  const db = getDb();
-
-  let upserted = 0;
-  let withVideo = 0;
-  let videosUpdated = 0;
-  let videosInserted = 0;
-  let videosPreserved = 0;
-
-  for (const event of events) {
-    const startAt = parseLegistarStartAt(event.EventDate, event.EventTime);
-    const status = isCanceled(event) ? 'canceled' : 'scheduled';
-    const title = eventTitle(event);
-    const agendaUrl = event.EventAgendaFile ?? null;
-
-    const [row] = await db
-      .insert(meetings)
-      .values({
-        body: event.EventBodyName,
-        title,
-        startAt,
-        source: 'legistar',
-        sourceId: event.EventId,
-        sourceUrl: event.EventInSiteURL,
-        agendaUrl,
-        location: event.EventLocation,
-        status,
-        syncedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: meetings.sourceId,
-        set: {
-          body: event.EventBodyName,
-          title,
-          startAt,
-          sourceUrl: event.EventInSiteURL,
-          agendaUrl,
-          location: event.EventLocation,
-          status,
-          syncedAt: new Date(),
-        },
-      })
-      .returning({ id: meetings.id });
-
-    upserted += 1;
-
-    const video = videoFromEvent(event);
-    const videoResult = await syncMeetingVideo(row.id, video);
-
-    if (video) withVideo += 1;
-    if (videoResult === 'updated') videosUpdated += 1;
-    if (videoResult === 'inserted') videosInserted += 1;
-    if (videoResult === 'preserved') videosPreserved += 1;
-
-    await db.delete(meetingFiles).where(eq(meetingFiles.meetingId, row.id));
-    const files = filesFromEvent(event);
-    if (files.length > 0) {
-      await db.insert(meetingFiles).values(
-        files.map((f) => ({
-          meetingId: row.id,
-          type: f.type,
-          url: f.url,
-          name: f.name,
-        })),
-      );
-    }
-  }
-
   return {
-    fetched: events.length,
-    upserted,
-    withVideo,
-    videosUpdated,
-    videosInserted,
-    videosPreserved,
+    filter: `EventDate ge datetime'${formatLegistarDate(lookback)}' and EventDate le datetime'${formatLegistarDate(lookahead)}'`,
     window: {
       lookback: lookback.toISODate() ?? '',
       lookahead: lookahead.toISODate() ?? '',
     },
   };
+}
+
+export function eventsToNormalized(
+  events: Awaited<ReturnType<typeof fetchLegistarEvents>>,
+  tenant: LegistarTenant,
+): NormalizedMeeting[] {
+  return events.map((event) => ({
+    source: tenant.source,
+    sourceId: String(event.EventId),
+    body: event.EventBodyName,
+    title: eventTitle(event),
+    startAt: parseLegistarStartAt(event.EventDate, event.EventTime),
+    status: isCanceled(event) ? 'canceled' : 'scheduled',
+    sourceUrl: event.EventInSiteURL,
+    agendaUrl: event.EventAgendaFile ?? null,
+    location: event.EventLocation,
+    files: filesFromEvent(event),
+    video: videoFromEvent(event, tenant),
+  }));
+}
+
+function inWindow(startAt: Date): boolean {
+  const { lookback, lookahead } = getSyncWindow();
+  return startAt >= lookback.toJSDate() && startAt <= lookahead.toJSDate();
+}
+
+async function fallbackCalendarMeetings(tenant: LegistarTenant): Promise<NormalizedMeeting[]> {
+  const url = calendarUrlFor(tenant);
+  const html = await fetchHtml(url);
+  const fromCalendar = parseLegistarCalendarHtml(html, tenant, url);
+  if (tenant.client !== 'abcwua') return fromCalendar.filter((m) => inWindow(m.startAt));
+
+  const publishedHtml = await fetchHtml(
+    'https://www.abcwua.org/your-water-authority-2026-meetings/',
+  );
+  const published = parseAbcwuaPublishedSchedule(publishedHtml);
+  const byId = new Map<string, NormalizedMeeting>();
+  for (const meeting of [...fromCalendar, ...published]) {
+    if (!inWindow(meeting.startAt)) continue;
+    const key = `${meeting.body}:${meeting.startAt.toISOString().slice(0, 10)}`;
+    if (!byId.has(key) || meeting.agendaUrl) byId.set(key, meeting);
+  }
+  return [...byId.values()];
+}
+
+export async function syncLegistarTenant(tenant: LegistarTenant): Promise<SourceSyncCounts> {
+  const { filter } = eventFilter();
+  let normalized: NormalizedMeeting[] = [];
+  let error: string | undefined;
+
+  try {
+    const events = await fetchLegistarEvents(tenant, filter);
+    normalized = eventsToNormalized(events, tenant);
+  } catch (err) {
+    error = err instanceof Error ? err.message : String(err);
+    normalized = await fallbackCalendarMeetings(tenant);
+  }
+
+  const { upserted, withVideo } = await upsertNormalizedMeetings(normalized);
+  return {
+    source: tenant.source,
+    fetched: normalized.length,
+    upserted,
+    withVideo,
+    error: error && normalized.length === 0 ? error : undefined,
+  };
+}
+
+/** cabq Council + committees (source = 'legistar'). */
+export async function syncLegistarMeetings(): Promise<SyncResult> {
+  const { window } = eventFilter();
+  const result = await syncLegistarTenant(CABQ_TENANT);
+  return {
+    fetched: result.fetched,
+    upserted: result.upserted,
+    withVideo: result.withVideo,
+    videosUpdated: 0,
+    videosInserted: result.withVideo,
+    videosPreserved: 0,
+    window,
+  };
+}
+
+export async function syncAbcwuaMeetings(): Promise<SourceSyncCounts> {
+  return syncLegistarTenant(ABCWUA_TENANT);
 }

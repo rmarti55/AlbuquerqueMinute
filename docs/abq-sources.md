@@ -1,90 +1,104 @@
 # Albuquerque data sources
 
-The Albuquerque Minute admin pipeline ingests **City Council and related bodies** from Legistar, then attaches Granicus video when available.
+The Albuquerque Minute admin pipeline ingests **city + joint meetings** into one `meetings` table, then attaches file URLs and video *pointers*. It does **not** run STT, Deepgram, or OpenRouter for the new sources.
 
-> **Phase legend:** Phases in this file are **Civic pipeline** phases (this admin app). Newsletter launch phases (Beehiiv MVP, monetization) live in [`data/abq-market/ABQ-COMPETITIVE-LANDSCAPE.md`](../data/abq-market/ABQ-COMPETITIVE-LANDSCAPE.md) — do not mix the two numbering schemes.
+> **Phase legend:** Phases in this file are **Civic pipeline** phases (this admin app). Newsletter launch phases live in [`data/abq-market/ABQ-COMPETITIVE-LANDSCAPE.md`](../data/abq-market/ABQ-COMPETITIVE-LANDSCAPE.md).
 
-## Legistar (meetings metadata)
+## Sync
 
 | Field | Value |
 |-------|-------|
-| Client slug | `cabq` (not `albuquerque`) |
-| API base | `https://webapi.legistar.com/v1/cabq` |
-| Events | `GET /events` with OData `$filter` on `EventDate` |
-| Sync window | 31 days lookback (~30) · 60 days lookahead (America/Denver) |
-| Cron | Every 6 hours via `/api/cron/legistar-sync` |
+| Window | 31 days lookback · 60 days lookahead (America/Denver) |
+| Cron | Every 6 hours via `/api/cron/legistar-sync` (now runs **all** adapters) |
+| Admin | **Sync meetings** → `/api/admin/sync-meetings` |
+| CLI | `npm run sync:meetings` |
 
-### Bodies synced (EventBodyId)
+Unique key: `(source, source_id)` with `source_id` as **text**.
 
-Council and standing committees only — see `LEGISTAR_BODY_IDS` in `src/lib/legistar/config.ts`.
+| `source` | What |
+|----------|------|
+| `legistar` | City Council + committees + Development Commission (`cabq` Legistar) |
+| `legistar_abcwua` | Water Authority + advisory bodies (`abcwua` Legistar) |
+| `planning` | EPC, ZHE, DHO, Landmarks (HTML) |
+| `cpoa` | Civilian Police Oversight Advisory Board |
+| `clerk_board` | Selected Clerk boards (per-page notices) |
 
-### Calendar.aspx vs REST API
+YouTube is a **match method**, not a meeting source.
 
-`Calendar.aspx` can show **placeholder rows** (e.g. Sep 9 City Council from the published annual schedule) before the clerk creates a Legistar **Event**. Those dates are not in `GET /events` until an agenda is posted and the event is published — sync will pick them up automatically then. Do not scrape the calendar HTML.
+Bernalillo County CivicClerk is out of scope.
 
-### Video linkage
+## Legistar (cabq + abcwua)
 
-Legistar `EventMedia` holds the **Granicus clip id** when a recording exists. `EventVideoPath` is often null even when video is available — always prefer `EventMedia`.
+| Tenant | API | Source value |
+|--------|-----|----------------|
+| City | `https://webapi.legistar.com/v1/cabq` | `legistar` |
+| Water | `https://webapi.legistar.com/v1/abcwua` | `legistar_abcwua` |
 
-## Granicus (Council video)
+cabq body IDs: [`CABQ_TENANT`](../src/lib/legistar/config.ts) (includes Development Commission **50**).
+
+abcwua body IDs: 39 (board), 49 (labor), 50 (TCAC), 51 (water protection).
+
+The abcwua `GET /events` API currently returns 400 (`Agenda Draft Status` not configured). Sync falls back to [Calendar.aspx](https://abcwua.legistar.com/Calendar.aspx) HTML plus the [published 2026 board list](https://www.abcwua.org/your-water-authority-2026-meetings/).
+
+`Calendar.aspx` can show **placeholder rows** before the clerk creates a Legistar Event. Do not scrape the calendar HTML.
+
+`EventMedia` is the Granicus clip id. Prefer it over `EventVideoPath`.
+
+## Planning / CPOA / boards (HTML)
+
+| Body | Page |
+|------|------|
+| EPC | [agendas](https://www.cabq.gov/planning/boards-commissions/environmental-planning-commission/epc-agendas-reports-minutes) |
+| ZHE | [agendas](https://www.cabq.gov/planning/boards-commissions/zoning-hearing-examiner/zhe-agendas-action-sheets-decisions) |
+| DHO | [agendas](https://www.cabq.gov/planning/boards-commissions/development-hearing-officer/development-hearing-officer-agendas-archives) |
+| Landmarks | [agendas](https://www.cabq.gov/planning/boards-commissions/landmarks-commission/landmarks-commission-agendas-action-sheets) |
+| CPOA | [events](https://www.cabq.gov/cpoa/events) |
+| Clerk boards | [directory](https://www.cabq.gov/clerk/boards-commissions) · pages in [`BOARD_PAGES`](../src/lib/boards/registry.ts) |
+
+After a board meeting, PDFs move to [OnBase CQID=136](https://onbase.cabq.gov/publicaccess/?CQID=136). That UI is JS-only; we keep `agenda_url` as the board page when OnBase is not queryable.
+
+## Video pointers (stored, not transcribed)
+
+| Source | Pointer | Later audio path (not run) |
+|--------|---------|----------------------------|
+| Council / COW | Granicus via `EventMedia` | Existing [`stt.ts`](../src/lib/granicus/stt.ts) HLS → ffmpeg → Deepgram |
+| cabq committees | Rare `EventMedia` | Same Granicus path |
+| ABCWUA | `EventMedia` if present | Granicus or YouTube |
+| Planning | Zoom recording / YouTube link on the materials page | Download that URL later |
+| CPOA + boards | YouTube `@GOVTVBoardsCommissionMeetings` (`UCEqpcP42AmnpJPyuOy1jASQ`) | `yt-dlp` via [`src/lib/youtube/audio.ts`](../src/lib/youtube/audio.ts) — **throws until enabled** |
+
+RSS: `https://www.youtube.com/feeds/videos.xml?channel_id=UCEqpcP42AmnpJPyuOy1jASQ`
+
+Match: title date ±1 day + body tokens → `meeting_videos.youtube_id`, `match_method = youtube_title_date`.
+
+**Do not** run `yt-dlp`, Deepgram, or OpenRouter for these pointers yet. `npm run stt:transcribe -- --youtube` is a hard error on purpose.
+
+## Granicus (Council STT — already wired)
 
 | Field | Value |
 |-------|-------|
 | Player | `https://cabq.granicus.com/player/clip/{clipId}?view_id=2&redirect=true` |
-| HLS | Embedded in player HTML as `video_url="…/playlist.m3u8"` |
-| STT | Deepgram nova-2 via ffmpeg HLS download (local CLI) |
+| HLS | `video_url="…/playlist.m3u8"` in player HTML |
+| STT | Deepgram nova-2 via local CLI only |
 
-**Do not use** city-hosted `/videos/{clip}/captions.vtt` — live auto-captions are garbled.
-
-### Granicus fetch notes (STT smoke test)
-
-- CloudFront returns 403 without browser User-Agent
-- Use Chrome UA + `Referer: https://cabq.granicus.com/` → 200
-- Recipe: GET player → regex `video_url` → `ffmpeg` → Deepgram
-
-## YouTube (reference only — not wired)
-
-| Field | Value |
-|-------|-------|
-| Channel | `@GOVTVBoardsCommissionMeetings` |
-| Role | Town halls, boards, commissions — **not** reliable Council archive |
-
-The schema has a reserved `youtube_id` column on `meeting_videos`, but **this app does not use it** — no paste UI, no YouTube sync, no auto-match. Council video comes from Granicus via Legistar `EventMedia` only.
-
-## Auth
-
-- **Admin UI:** Clerk sign-in; allowlist via `ADMIN_EMAIL`
-- **Cron routes:** `CRON_SECRET` (Bearer token or `?secret=`)
-
-## Civic phase roadmap
-
-1. **Civic Phase 1 (done):** Legistar sync + admin meetings table
-2. **Civic Phase 2 (done):** `meeting_transcripts` table + local CLI STT + admin copy UI
-3. **Civic Phase 2b (later):** Hetzner VPS worker (auto queue, same recipe as Santa Fe Minutes)
-4. **Civic Phase 3 (not built):** `/admin/generate` — paste transcript → OpenRouter article draft
-
-### Civic Phase 2 — local transcription CLI
-
-Set `DEEPGRAM_API_KEY` in `.env.local`. STT runs **locally only** — never on Vercel.
+Do not use city `/videos/{clip}/captions.vtt` (garbled live captions). CloudFront needs Chrome UA + `Referer: https://cabq.granicus.com/`.
 
 ```bash
-# Full Council VOD → meeting_transcripts
 npm run stt:transcribe -- --clip 556
-
-# Or by internal meeting id
 npm run stt:transcribe -- --meeting-id 123
-
-# Debug slice (cheap)
 npm run stt:smoke -- --clip 556 --minutes 5
 ```
 
-Cost: ~$0.0043/min (Deepgram nova-2). A 3-hour Council session ≈ $0.75.
+## Auth
 
-Download guardrails (local CLI):
+- **Admin UI:** Clerk; `ADMIN_EMAIL`
+- **Cron routes:** `CRON_SECRET`
 
-- 90-minute overall ffmpeg timeout
-- 5-minute stall detection (kills if file stops growing)
-- Progress logged every 30s
-- Audio cached at `data/stt-audio/clip-{id}.mp3` (reused on retry unless `--force`)
+## Civic phase roadmap
 
-View/copy: `/admin` → **Copy** in Transcript column → `/admin/meetings/{id}`.
+1. **Phase 1 (done):** Legistar sync + admin table
+2. **Phase 2 (done):** transcripts + local Granicus STT CLI
+3. **Phase 2c (this work):** multi-source ingest + video pointers
+4. **Phase 2b (later):** Hetzner worker
+5. **Phase 3 (not built):** `/admin/generate` — OpenRouter drafts
+6. **Phase 2d (later):** YouTube/Zoom STT using stored pointers

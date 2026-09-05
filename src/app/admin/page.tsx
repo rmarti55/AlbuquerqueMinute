@@ -8,7 +8,14 @@ import { SyncButton } from './sync-button';
 export const dynamic = 'force-dynamic';
 
 const GRID_COLS =
-  'grid-cols-[minmax(0,1.1fr)_12rem_minmax(0,1.4fr)_3.5rem_5rem_4.5rem_4rem]';
+  'grid-cols-[minmax(0,1.2fr)_12rem_minmax(0,1.3fr)_4.5rem_3.5rem_5rem_4.5rem_4rem]';
+
+function sourceLabel(source: string): string {
+  if (source === 'legistar') return 'cabq';
+  if (source === 'legistar_abcwua') return 'water';
+  if (source === 'clerk_board') return 'board';
+  return source;
+}
 
 const linkClass =
   'text-xs font-medium text-zinc-600 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-900 hover:decoration-zinc-500';
@@ -79,15 +86,16 @@ export default async function AdminPage() {
               <div className="font-medium">Body</div>
               <div className="whitespace-nowrap font-medium">Date</div>
               <div className="font-medium">Title</div>
+              <div className="whitespace-nowrap font-medium">Source</div>
               <div className="whitespace-nowrap font-medium">Video</div>
               <div className="whitespace-nowrap font-medium">Transcript</div>
-              <div className="whitespace-nowrap font-medium">Legistar</div>
+              <div className="whitespace-nowrap font-medium">Page</div>
               <div className="whitespace-nowrap font-medium">Agenda</div>
             </div>
 
             {rows.length === 0 ? (
               <div className="px-4 py-8 text-center text-zinc-500">
-                No meetings in window. Run sync from Legistar.
+                No meetings in window. Run Sync meetings.
               </div>
             ) : (
               rows.map((row) => (
@@ -107,6 +115,9 @@ export default async function AdminPage() {
                   <div className="min-w-0 text-zinc-700" title={row.title}>
                     {row.title}
                   </div>
+                  <div className="whitespace-nowrap font-mono text-[11px] text-zinc-500">
+                    {sourceLabel(row.source)}
+                  </div>
                   <div className="whitespace-nowrap">
                     {row.playerUrl ? (
                       <Link
@@ -116,11 +127,13 @@ export default async function AdminPage() {
                         title={
                           row.granicusClipId
                             ? `Granicus clip ${row.granicusClipId}`
-                            : 'Watch recording'
+                            : row.youtubeId
+                              ? `YouTube ${row.youtubeId}`
+                              : 'Watch recording'
                         }
                         className="font-mono text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
                       >
-                        {row.granicusClipId ?? 'Watch'}
+                        {row.granicusClipId ?? (row.youtubeId ? 'YT' : 'Watch')}
                       </Link>
                     ) : (
                       <EmptyCell />

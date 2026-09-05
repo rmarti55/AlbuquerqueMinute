@@ -9,10 +9,12 @@ export interface MeetingRow {
   title: string;
   startAt: Date;
   status: string;
+  source: string;
   sourceUrl: string | null;
   agendaUrl: string | null;
   hasVideo: boolean;
   granicusClipId: number | null;
+  youtubeId: string | null;
   playerUrl: string | null;
   transcriptStatus: TranscriptStatus | null;
   transcriptError: string | null;
@@ -29,10 +31,12 @@ export async function listMeetingsInWindow(): Promise<MeetingRow[]> {
       title: meetings.title,
       startAt: meetings.startAt,
       status: meetings.status,
+      source: meetings.source,
       sourceUrl: meetings.sourceUrl,
       agendaUrl: meetings.agendaUrl,
       hasVideo: sql<boolean>`${meetingVideos.id} IS NOT NULL`.as('has_video'),
       granicusClipId: meetingVideos.granicusClipId,
+      youtubeId: meetingVideos.youtubeId,
       playerUrl: meetingVideos.playerUrl,
       transcriptStatus: meetingTranscripts.status,
       transcriptError: meetingTranscripts.errorMessage,
@@ -72,12 +76,17 @@ export async function getMeetingWithTranscript(meetingId: number) {
       body: meetings.body,
       title: meetings.title,
       startAt: meetings.startAt,
+      source: meetings.source,
       sourceUrl: meetings.sourceUrl,
       agendaUrl: meetings.agendaUrl,
       granicusClipId: meetingVideos.granicusClipId,
+      youtubeId: meetingVideos.youtubeId,
       playerUrl: meetingVideos.playerUrl,
       transcriptStatus: meetingTranscripts.status,
       rawTranscript: meetingTranscripts.rawTranscript,
+      resolvedTranscript: meetingTranscripts.resolvedTranscript,
+      speakerMapJson: meetingTranscripts.speakerMapJson,
+      rosterJson: meetings.rosterJson,
       transcriptError: meetingTranscripts.errorMessage,
     })
     .from(meetings)

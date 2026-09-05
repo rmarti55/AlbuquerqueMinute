@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/legistar-sync",
+      "path": "/api/cron/sync-meetings",
       "schedule": "0 */6 * * *"
     }
   ]

@@ -229,7 +229,10 @@ function runCurl(args: string[], stdinConfig: string, timeoutMs: number): Promis
   });
 }
 
-export async function transcribeAudio(audioPath: string): Promise<DeepgramUtterance[]> {
+export async function transcribeAudio(
+  audioPath: string,
+  options?: { keywords?: string[] },
+): Promise<DeepgramUtterance[]> {
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (!apiKey) {
     throw new Error('DEEPGRAM_API_KEY missing — set it in .env.local');
@@ -246,6 +249,10 @@ export async function transcribeAudio(audioPath: string): Promise<DeepgramUttera
     utterances: 'true',
     diarize: 'true',
   });
+  for (const keyword of options?.keywords ?? []) {
+    const term = keyword.trim();
+    if (term) params.append('keywords', `${term}:2`);
+  }
 
   const maxTimeSec = Math.floor(DEEPGRAM_TIMEOUT_MS / 1000);
   const stdout = await runCurl(

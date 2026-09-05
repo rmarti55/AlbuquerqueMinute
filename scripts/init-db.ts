@@ -49,15 +49,16 @@ async function main() {
       title text NOT NULL,
       start_at timestamptz NOT NULL,
       source text NOT NULL DEFAULT 'legistar',
-      source_id integer NOT NULL,
+      source_id text NOT NULL,
       source_url text,
       agenda_url text,
       location text,
       status text NOT NULL DEFAULT 'scheduled',
+      roster_json text,
       synced_at timestamptz DEFAULT now()
     )
   `;
-  await sql`CREATE UNIQUE INDEX IF NOT EXISTS meetings_source_id_idx ON meetings (source_id)`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS meetings_source_source_id_idx ON meetings (source, source_id)`;
   await sql`CREATE INDEX IF NOT EXISTS meetings_start_at_idx ON meetings (start_at)`;
   await sql`CREATE INDEX IF NOT EXISTS meetings_body_idx ON meetings (body)`;
 
@@ -91,7 +92,9 @@ async function main() {
       meeting_id integer NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
       video_id integer REFERENCES meeting_videos(id) ON DELETE SET NULL,
       raw_transcript text,
+      resolved_transcript text,
       segments_json text,
+      speaker_map_json text,
       status text NOT NULL DEFAULT 'pending',
       transcript_source text,
       error_message text,
